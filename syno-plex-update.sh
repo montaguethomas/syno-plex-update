@@ -17,10 +17,10 @@ PLEX_RELEASE_API='https://plex.tv/api/downloads/5.json?X-Plex-Token=TokenPlaceho
 DOWNLOAD_DIR='/volume1/@tmp'
 
 # Whether to send log messages to syslog.
-ENABLE_SYSLOG_LOGGING=true
+ENABLE_SYSLOG_LOGGING='true'
 
 # Whether to create system log messages in Synology Log Center.
-ENABLE_LOG_CENTER_LOGGING=true
+ENABLE_LOG_CENTER_LOGGING='true'
 
 # ========== [End Configuration] ==========
 
@@ -49,7 +49,7 @@ fi
 function write_log {
     local full_message="[syno-plex-update] $*"
 
-    if [ "${ENABLE_SYSLOG_LOGGING}" = true ]; then
+    if [[ "${ENABLE_SYSLOG_LOGGING}" == 'true' ]]; then
         # Write to rsyslog and mirror to stderr.
         logger --stderr "${full_message}"
     else
@@ -57,7 +57,7 @@ function write_log {
         cat <<< "$(date) ${full_message}" 1>&2;
     fi
 
-    if [ "${ENABLE_LOG_CENTER_LOGGING}" = true ]; then
+    if [[ "${ENABLE_LOG_CENTER_LOGGING}" == 'true' ]]; then
         # Write to Synology Log Center.
         # Hack: for some reason, rapidly written logs appear out of order
         # in Log Center, so add a short sleep after each message.
