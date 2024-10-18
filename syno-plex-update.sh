@@ -178,7 +178,7 @@ function notify_update_available {
 function download_and_install_package {
     # Given a download URL for an SPK package, download and install it.
     local url=$1
-    local filename="$(basename "${url})"
+    local filename="$(basename "${url}")"
 
     write_log "Downloading latest version from ${url}"
     curl -o "${DOWNLOAD_DIR}/${filename}" "${url}"
