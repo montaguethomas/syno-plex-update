@@ -14,13 +14,13 @@
 PLEX_RELEASE_API='https://plex.tv/api/downloads/5.json?X-Plex-Token=TokenPlaceholder'
 
 # Temporary directory for downloading .spk packages. Contents will be destroyed.
-DOWNLOAD_DIR='/tmp/syno-plex-update'
+DOWNLOAD_DIR='/volume1/@tmp'
 
 # Whether to send log messages to syslog.
-ENABLE_SYSLOG_LOGGING=true
+ENABLE_SYSLOG_LOGGING='true'
 
 # Whether to create system log messages in Synology Log Center.
-ENABLE_LOG_CENTER_LOGGING=true
+ENABLE_LOG_CENTER_LOGGING='true'
 
 # ========== [End Configuration] ==========
 
@@ -49,7 +49,7 @@ fi
 function write_log {
     local full_message="[syno-plex-update] $*"
 
-    if [ "${ENABLE_SYSLOG_LOGGING}" = true ]; then
+    if [[ "${ENABLE_SYSLOG_LOGGING}" == 'true' ]]; then
         # Write to rsyslog and mirror to stderr.
         logger --stderr "${full_message}"
     else
@@ -57,7 +57,7 @@ function write_log {
         cat <<< "$(date) ${full_message}" 1>&2;
     fi
 
-    if [ "${ENABLE_LOG_CENTER_LOGGING}" = true ]; then
+    if [[ "${ENABLE_LOG_CENTER_LOGGING}" == 'true' ]]; then
         # Write to Synology Log Center.
         # Hack: for some reason, rapidly written logs appear out of order
         # in Log Center, so add a short sleep after each message.
@@ -178,24 +178,20 @@ function notify_update_available {
 function download_and_install_package {
     # Given a download URL for an SPK package, download and install it.
     local url=$1
+    local filename="$(basename "${url}")"
 
     write_log "Downloading latest version from ${url}"
-    rm -rf "${DOWNLOAD_DIR}"
-    mkdir -p "${DOWNLOAD_DIR}" > /dev/null 2>&1
-    wget "${url}" -P "${DOWNLOAD_DIR}/"
+    curl -o "${DOWNLOAD_DIR}/${filename}" "${url}"
 
-    local downloaded_package_file
-    downloaded_package_file=$(find "${DOWNLOAD_DIR}" -type f -name "*.spk" | head -n 1)
-
-    write_log "Installing SPK package from ${downloaded_package_file}"
-    synopkg install "${downloaded_package_file}"
+    write_log "Installing SPK package from ${DOWNLOAD_DIR}/${filename}"
+    synopkg install "${DOWNLOAD_DIR}/${filename}"
     sleep 30
 
     write_log "Starting the new ${PACKAGE_NAME} package"
     synopkg start "${PACKAGE_NAME}"
 
-    write_log "Cleaning up ${DOWNLOAD_DIR}"
-    rm -rf "${DOWNLOAD_DIR}"
+    write_log "Cleaning up ${DOWNLOAD_DIR}/${filename}"
+    rm -f "${DOWNLOAD_DIR}/${filename}"
 }
 
 function is_latest_version_installed {
@@ -204,10 +200,10 @@ function is_latest_version_installed {
     local installed_version=$2
 
     # dpkg version comparison uses exit codes so we'll tolerate errors temporarily.
-    set +eu
+    set +e
     /usr/bin/dpkg --compare-versions "${available_version}" gt "${installed_version}"
     local result="$?"
-    set -eu
+    set -e
 
     echo ${result}
 }
